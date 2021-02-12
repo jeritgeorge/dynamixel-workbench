@@ -459,7 +459,7 @@ void DynamixelController::publishCallback(const ros::TimerEvent&)
 #endif
   dynamixel_state_list_pub_.publish(dynamixel_state_list_);
 
-  if (is_joint_state_topic_)
+  if (is_joint_state_topic_ && !is_moving_)
   {
     joint_state_msg_.header.stamp = ros::Time::now();
 
@@ -600,6 +600,15 @@ void DynamixelController::writeCallback(const ros::TimerEvent&)
       dynamixel_position[index] = dxl_wb_->convertRadian2Value(id_array[index], jnt_tra_msg_->points[point_cnt].positions.at(index));
 
     result = dxl_wb_->syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_POSITION, id_array, id_cnt, dynamixel_position, 1, &log);
+
+    sensor_msgs::JointState joint_state_msg;
+    joint_state_msg.position = jnt_tra_msg_->points[point_cnt].positions;
+    joint_state_msg.velocity = jnt_tra_msg_->points[point_cnt].velocities;
+    joint_state_msg.effort = jnt_tra_msg_->points[point_cnt].effort;
+    joint_state_msg.name = jnt_tra_msg_->joint_names;
+    joint_state_msg.header.stamp = ros::Time::now();
+    joint_states_pub_.publish(joint_state_msg);
+
     if (result == false)
     {
       ROS_ERROR("%s", log);
